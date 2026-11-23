@@ -16,10 +16,19 @@ Satu file `index.html`, tanpa build, tanpa server, tanpa aplikasi berbayar. Data
 | **Chart** | Panel TF kecil / menengah / besar. Zona S/R & supply/demand, HH/HL/LH/LL, BOS/CHoCH, fake break (×), panel **irama candle** (body ÷ ATR), level plan, riwayat sinyal |
 | **Backtest** | Satu pair, 3.000–10.000 candle, per setup & per grade, fee + slippage, penjaga risiko opsional |
 | **Risiko & jurnal** | Kalkulator posisi (risk dulu → SL logis → lot mengikuti), jurnal R, status GO / Tunggu / Stop |
-| **Alert** | Log sinyal, Telegram, auto-scan tiap close candle TF kecil / 15 menit / 1 jam |
+| **Alert** | Log sinyal, **peringatan intrabar realtime**, Telegram, auto-scan: Realtime WebSocket (default) / tiap close candle / 15 menit / 1 jam |
 | **Pengaturan** | Setup, stop & target, risiko, biaya, endpoint, Telegram |
 
 Bahasa EN/ID dan tema terang/gelap di header.
+
+## Realtime (WebSocket)
+
+Default auto-scan = **Realtime WebSocket**. Satu koneksi ke `wss://data-stream.binance.vision` (data pasar publik, tanpa API key) memuat stream kline semua pair hasil scan di ketiga timeframe. Badge **● Realtime** di header menunjukkan status koneksi.
+
+- **Harga live** diperbarui setiap push Binance (±1–2 detik), tanpa polling REST.
+- **Candle close:** bar baru ditambahkan, semua pair dievaluasi ulang ±2,5 detik setelah close (menunggu candle TF menengah/besar yang close bersamaan). Jika ada candle terlewat (koneksi putus), data pair itu diisi ulang dari REST.
+- **Peringatan intrabar** (tab Alert, opsional ke Telegram): harga masuk zona support/demand, atau plan aktif menyentuh SL / TP1 / TP2. Sifatnya informasi; **sinyal entry tetap hanya dari candle yang sudah close** (tanpa repaint).
+- Sambung ulang otomatis (1 → 30 detik), pindah ke `stream.binance.com:9443` jika endpoint utama gagal, dan watchdog jika 60 detik tidak ada data. Selama terputus, aplikasi kembali ke scan REST tiap close candle.
 
 ## Timeframe (maks 3, Bab 5)
 
@@ -79,12 +88,12 @@ Per setup (M15, dengan biaya): pullback 95 trade −0,07R · retest breakout 6 t
 ## Telegram
 
 1. @BotFather → `/newbot` → salin token. Kirim pesan ke bot, buka `https://api.telegram.org/bot<TOKEN>/getUpdates`, salin `chat.id`.
-2. **Pengaturan → Data dan Telegram**: isi token & chat ID, centang kirim sinyal live, **Simpan**.
+2. **Pengaturan → Data dan Telegram**: isi token & chat ID, centang kirim sinyal live (dan peringatan intrabar jika mau), **Simpan**.
 3. Tab **Alert**: *Kirim pesan tes* / *Kirim sinyal tes*.
 
 ## Batasan
 
-- Auto-scan hanya berjalan selama halaman terbuka.
+- Auto-scan dan WebSocket hanya berjalan selama halaman terbuka. Di HP, browser bisa menghentikan koneksi saat layar mati atau tab di latar belakang; saat dibuka lagi aplikasi menyambung ulang dan mengisi data yang terlewat.
 - Endpoint default `data-api.binance.vision`. Jika status "Data demo", ganti endpoint di Pengaturan.
 - Tidak ada kalender berita; aturan buku "hindari news besar" dicek manual.
 - Contoh di buku memakai forex; adaptasi ke crypto (ATR menggantikan pip, sesi WIB, hanya long) adalah keputusan aplikasi.

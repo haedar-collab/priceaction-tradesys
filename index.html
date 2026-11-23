@@ -188,6 +188,7 @@ td small{font-size:12px;opacity:.85;margin-left:2px}
 .story{font-size:13.5px;margin:6px 0 0;padding-left:18px}
 .story li{margin-bottom:3px}
 .q5 li{font-weight:500}
+.wsb{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--rule);margin-left:6px;white-space:nowrap}.wsb.on{color:var(--tp);border-color:var(--tp)}.wsb.conn,.wsb.retry{color:var(--warn)}.wsb.off{color:var(--mute)}
 .verdict{border-left:3px solid var(--sl);padding:10px 12px;background:var(--panel);font-size:14px;margin:0 0 14px}
 @media(max-width:600px){.ck2{grid-template-columns:minmax(0,1fr)}}
 </style>
@@ -197,7 +198,7 @@ td small{font-size:12px;opacity:.85;margin-left:2px}
   <div class="wrap top">
     <div class="brand"><b>Tradesys Edge Price Action</b><span data-i="sub"></span></div>
     <div class="grow"></div>
-    <div class="status"><span class="dot" id="dot"></span><span id="stxt"></span></div>
+    <div class="status"><span class="dot" id="dot"></span><span id="stxt"></span><span id="wsBadge" class="wsb off"></span></div>
     <select id="qtf" aria-label="Timeframe"><option value="1h">D1 · H4 · H1</option><option value="15m">H4 · H1 · M15</option><option value="5m">H1 · M15 · M5</option></select>
     <div class="seg" id="themeSeg" role="group" aria-label="Theme"><button data-theme-set="light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg><span data-i="th_light"></span></button><button data-theme-set="dark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span data-i="th_dark"></span></button></div>
     <div class="seg" id="langSeg" role="group" aria-label="Language"><button data-lang="en">EN</button><button data-lang="id">ID</button></div>
@@ -309,8 +310,11 @@ td small{font-size:12px;opacity:.85;margin-left:2px}
   <h2 data-i="n_alerts"></h2>
   <p class="lede" data-i="a_lede"></p>
   <div class="tgbox"><button class="pri" id="aTestSig" data-i="test_sig"></button><button id="aTest" data-i="test_msg"></button><span id="tgMsg"></span></div>
-  <div class="bar-row"><button id="aCopy" data-i="copy_all"></button><button id="aClear" data-i="clear"></button><label><span data-i="auto"></span><select id="aAuto"><option value="0" data-i="off"></option><option value="bar" data-i="every_bar"></option><option value="15" data-i="every15"></option><option value="60" data-i="every60"></option></select></label></div>
+  <div class="bar-row"><button id="aCopy" data-i="copy_all"></button><button id="aClear" data-i="clear"></button><label><span data-i="auto"></span><select id="aAuto"><option value="ws" data-i="every_ws"></option><option value="bar" data-i="every_bar"></option><option value="0" data-i="off"></option><option value="15" data-i="every15"></option><option value="60" data-i="every60"></option></select></label></div>
   <div id="aList"></div>
+  <h3 style="margin-top:22px" data-i="intra_t"></h3>
+  <p class="lede" data-i="intra_lede"></p>
+  <div id="iList"></div>
 </section>
 
 <section class="view" id="v-config">
@@ -321,6 +325,7 @@ td small{font-size:12px;opacity:.85;margin-left:2px}
       <label><span data-i="cf_token"></span><input id="k_tgToken" type="password" autocomplete="off" placeholder="123456:ABC…"></label>
       <label><span data-i="cf_chat"></span><input id="k_tgChat" autocomplete="off" placeholder="123456789"></label>
       <label class="cb"><input id="k_tgOn" type="checkbox"><span data-i="cf_tgon"></span></label>
+      <label class="cb"><input id="k_tgIntra" type="checkbox"><span data-i="cf_tgIntra"></span></label>
     </div><p class="note" data-i="cf_tgnote"></p></fieldset>
     <fieldset><legend data-i="universe"></legend><div class="form">
       <label style="grid-column:1/-1"><span data-i="cf_watch"></span><input id="k_watch"></label>
@@ -613,7 +618,12 @@ function demoBars(sym,tf,n,now){const ms=TFMS[tf]||9e5,base=DEMO_BASE[sym]||5,r=
 /* ---------- language ---------- */
 const MODE_LB={'1h':'D1 · H4 · H1','15m':'H4 · H1 · M15','5m':'H1 · M15 · M5'};
 const T={
-en:{sub:'Blueprint Price Action · Binance spot · long only',scan:'Scan now',th_light:'Light',th_dark:'Dark',
+en:{every_ws:'Realtime WebSocket (recommended)',ws_on:'● Realtime',ws_conn:'Connecting realtime…',ws_retry:'Reconnecting…',ws_off:'Realtime off',ws_last:'last data',
+ intra_t:'Intrabar warnings (realtime)',intra_lede:'Sent while the candle is still forming, from the WebSocket stream: price enters a support/demand zone, or an active plan touches SL, TP1 or TP2. Information only: an entry still needs the candle to close with a shift and an agreeing candle.',intra_none:'No intrabar warnings yet. They need the realtime connection (Alert → Auto-scan → Realtime WebSocket).',
+ intra_tag:'Intrabar warning · not an entry signal',it_sl:'SL',it_tp1:'TP1',it_tp2:'TP2',it_zone:'Zone',
+ in_sl:(p,l)=>`Price ${p} touched the stop loss ${l}: the story is invalid.`,in_tp1:(p,l)=>`Price ${p} reached TP1 ${l}: take 50%, move the stop to the latest higher low.`,in_tp2:(p,l)=>`Price ${p} reached TP2 ${l}.`,in_zone:(p,l,k,b)=>`Price ${p} entered the ${k} zone ${b} – ${l}. Wait for the reaction: shift + agreeing candle.`,
+ cf_tgIntra:'Also send intrabar warnings to Telegram',
+ sub:'Blueprint Price Action · Binance spot · long only',scan:'Scan now',th_light:'Light',th_dark:'Dark',
  n_dashboard:'Dashboard',n_scanner:'Scanner',n_chart:'Chart',n_backtest:'Backtest',n_risk:'Risk & journal',n_alerts:'Alerts',n_config:'Settings',
  st_live:'Live · Binance',st_demo:'Demo data · Binance unreachable',scanned:'scanned',scanning:'Scanning',connecting:'Connecting to Binance…',scan_failed:'Scan failed',
  pb_PB:'Pullback continuation',pb_BR:'Breakout retest',pb_RG:'Range bottom',pb_all:'All setups',
@@ -685,7 +695,12 @@ en:{sub:'Blueprint Price Action · Binance spot · long only',scan:'Scan now',th
  cf_exec:'Stop and target',cf_slMode:'Stop placement',sl_seq:'Below the start of the shift (book default)',sl_zone:'Below the whole zone (wider)',cf_slBuf:'Stop buffer (× mid ATR)',cf_maxSlAtr:'Max stop (× mid ATR)',cf_minRoom:'Min room to first obstacle (R)',cf_costMult:'TP1 must be ≥ this × round-trip cost',cf_maxBars:'Exit if no TP1 after (small candles, 0 = off)',
  cf_risk:'Risk and costs',cf_equity:'Equity (USDT)',cf_riskp:'Risk per trade %',cf_learning:'Learning mode (risk 0.5%)',cf_maxAlloc:'Max allocation per position %',cf_perSession:'Max trades per session',cf_maxTrades:'Max trades per day',cf_maxLossRow:'Stop after N losses in a row',cf_dayLoss:'Daily loss limit %',cf_fee:'Fee per side % (0.1 standard, 0.075 with BNB)',cf_slip:'Slippage per side %',cf_btGuard:'Apply risk guard in backtests',
  save:'Save and rescan',reset:'Reset defaults',saved:'Saved.',restored:'Defaults restored; save to rescan.'},
-id:{sub:'Blueprint Price Action · Binance spot · hanya long',scan:'Scan sekarang',th_light:'Terang',th_dark:'Gelap',
+id:{every_ws:'Realtime WebSocket (disarankan)',ws_on:'● Realtime',ws_conn:'Menyambung realtime…',ws_retry:'Menyambung ulang…',ws_off:'Realtime mati',ws_last:'data terakhir',
+ intra_t:'Peringatan intrabar (realtime)',intra_lede:'Dikirim saat candle masih berjalan, dari aliran WebSocket: harga masuk zona support/demand, atau plan aktif menyentuh SL, TP1, atau TP2. Hanya informasi: entry tetap menunggu candle close dengan shift dan candle yang setuju.',intra_none:'Belum ada peringatan intrabar. Butuh koneksi realtime (Alert → Auto-scan → Realtime WebSocket).',
+ intra_tag:'Peringatan intrabar · bukan sinyal entry',it_sl:'SL',it_tp1:'TP1',it_tp2:'TP2',it_zone:'Zona',
+ in_sl:(p,l)=>`Harga ${p} menyentuh stop loss ${l}: cerita batal.`,in_tp1:(p,l)=>`Harga ${p} mencapai TP1 ${l}: ambil 50%, geser stop ke higher low terbaru.`,in_tp2:(p,l)=>`Harga ${p} mencapai TP2 ${l}.`,in_zone:(p,l,k,b)=>`Harga ${p} masuk zona ${k} ${b} – ${l}. Tunggu reaksi: shift + candle yang setuju.`,
+ cf_tgIntra:'Kirim juga peringatan intrabar ke Telegram',
+ sub:'Blueprint Price Action · Binance spot · hanya long',scan:'Scan sekarang',th_light:'Terang',th_dark:'Gelap',
  n_dashboard:'Dashboard',n_scanner:'Scanner',n_chart:'Chart',n_backtest:'Backtest',n_risk:'Risiko & jurnal',n_alerts:'Alert',n_config:'Pengaturan',
  st_live:'Live · Binance',st_demo:'Data demo · Binance tidak terjangkau',scanned:'scan',scanning:'Memindai',connecting:'Menghubungkan ke Binance…',scan_failed:'Scan gagal',
  pb_PB:'Pullback lanjutan',pb_BR:'Retest breakout',pb_RG:'Bawah range',pb_all:'Semua setup',
@@ -760,9 +775,9 @@ id:{sub:'Blueprint Price Action · Binance spot · hanya long',scan:'Scan sekara
 
 const DEF={mode:'15m',scope:'watch',watch:'BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,DOGEUSDT,ADAUSDT,AVAXUSDT,LINKUSDT,SUIUSDT,TRXUSDT,LTCUSDT,NEARUSDT,APTUSDT,ARBUSDT,OPUSDT,INJUSDT,FETUSDT,TONUSDT,PEPEUSDT',topN:30,minVol:20000000,
  usePB:true,useBR:true,useRG:true,avoidAsia:false,shiftBody:0.6,retestWin:24,slMode:'seq',slBuf:0.15,maxSlAtr:2,minRoom:1.2,costMult:3,maxBars:48,
- equity:1000,risk:1,learning:false,maxAlloc:100,perSession:1,maxTrades:3,maxLossRow:2,dayLoss:2,fee:0.1,slip:0.02,btGuard:true,auto:'bar',endpoint:'https://data-api.binance.vision',tgOn:false,tgToken:'',tgChat:''};
+ equity:1000,risk:1,learning:false,maxAlloc:100,perSession:1,maxTrades:3,maxLossRow:2,dayLoss:2,fee:0.1,slip:0.02,btGuard:true,auto:'ws',tgIntra:true,endpoint:'https://data-api.binance.vision',tgOn:false,tgToken:'',tgChat:''};
 const LS={get(k,d){try{const v=localStorage.getItem('tepa_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('tepa_'+k,JSON.stringify(v))}catch(e){}}};
-let cfg={...DEF,...LS.get('cfg',{})};if(!MODES[cfg.mode])cfg.mode='15m';
+let cfg={...DEF,...LS.get('cfg',{})};if(!cfg.v2){cfg.auto='ws';cfg.v2=1;LS.set('cfg',cfg)}if(!MODES[cfg.mode])cfg.mode='15m';
 const effRisk=()=>cfg.learning?Math.min(cfg.risk,0.5):cfg.risk;
 const runCfg=()=>({...cfg,risk:effRisk()});
 let lang=LS.get('lang','id');
@@ -814,7 +829,7 @@ async function loadFilters(syms){const need=syms.filter(x=>!S.filt[x]);if(!live|
 
 /* ---------- live price ---------- */
 const nowPx=sym=>{if(S.px[sym])return S.px[sym];const X=S.cache[sym+S.scanMode]||S.cache[sym+cfg.mode];return X?X.S.c[X.S.n-1]:NaN};
-async function refreshPrices(){if(!live||document.hidden)return;const syms=[...new Set(S.results.map(r=>r.sym).concat(['BTCUSDT']).concat(Object.keys(S.cache).map(k=>k.replace(/(5m|15m|1h)$/,''))).filter(x=>/^[A-Z0-9]{2,20}USDT$/.test(x)))].slice(0,100);
+async function refreshPrices(){if(!live||document.hidden||(typeof WS!=='undefined'&&WS.open()))return;const syms=[...new Set(S.results.map(r=>r.sym).concat(['BTCUSDT']).concat(Object.keys(S.cache).map(k=>k.replace(/(5m|15m|1h)$/,''))).filter(x=>/^[A-Z0-9]{2,20}USDT$/.test(x)))].slice(0,100);
  try{const a=await api('/api/v3/ticker/price',{symbols:JSON.stringify(syms)});if(Array.isArray(a)){for(const x of a)S.px[x.symbol]=+x.price;S.pxAt=Date.now();paintPrices()}}catch(e){}}
 function pstatus(s,p){if(!isFinite(p))return null;if(p<=s.stop)return['bad','st_invalid'];if(p>=s.tp1)return['bad','st_tp1'];if(p>s.maxChase)return['wn','st_chase'];if(p<s.entry*0.999)return['wn','st_below'];if(p<=s.entry*1.001)return['ok','st_inzone'];return['ok','st_above']}
 function paintPrices(){for(const el of document.querySelectorAll('[data-px]'))el.textContent=fmtP(nowPx(el.dataset.px));
@@ -871,7 +886,7 @@ async function sendTg(html){if(!cfg.tgToken||!cfg.tgChat)throw new Error(t('tg_n
 function flash(btn,txt,ms=2200){const o=btn.dataset.i?t(btn.dataset.i):btn.textContent;btn.textContent=txt;setTimeout(()=>{btn.textContent=btn.dataset.i?t(btn.dataset.i):o},ms)}
 
 /* ---------- scan ---------- */
-function setStatus(msg){$('dot').className='dot'+(live?' live':'');$('stxt').textContent=msg||(live?t('st_live'):t('st_demo'))+(S.lastScan?' · '+t('scanned')+' '+hm(S.lastScan):'')}
+function setStatus(msg){$('dot').className='dot'+(live?' live':'');if(typeof paintWs==='function')paintWs();$('stxt').textContent=msg||(live?t('st_live'):t('st_demo'))+(S.lastScan?' · '+t('scanned')+' '+hm(S.lastScan):'')}
 function closest(ev){let best=null;for(const k of ['PB','BR','RG']){const c=ev.cand[k];if(!c)continue;const w=c.why.length-(c.loc?0.5:0);if(!best||w<best.w)best={k,why:c.why,w}}return best}
 async function scan(){
  if(S.busy){S.again=true;return}S.busy=true;S.again=false;const C=runCfg(),mode=C.mode;S.errs=[];$('scanBtn').disabled=true;const prog=$('prog');prog.style.width='4%';setStatus(t('scanning')+' '+MODE_LB[mode]+'…');
@@ -879,21 +894,85 @@ async function scan(){
   const syms=await universe(C);if(!syms.includes('BTCUSDT'))syms.unshift('BTCUSDT');let done=0;const res=[];
   await pool(syms,4,async sym=>{const X=await loadBundle(sym,mode,500);const i=X.S.n-1,ev=evalAt(X,i,C);S.cache[sym+mode]=X;const back=Math.round(864e5/TFMS[X.tfS]);
    if(ev)res.push({sym,...ev,chg:X.S.c[i]/X.S.c[Math.max(0,i-back)]-1,near:closest(ev)});done++;prog.style.width=(4+80*done/syms.length)+'%'});
-  const b=res.find(r=>r.sym==='BTCUSDT');S.btc=b?{price:b.price,chg:b.chg,big:b.big.str}:null;
-  const sigs=res.filter(r=>r.sig),per={},pooled={};
-  await pool(sigs,3,async r=>{const X=await loadBundle(r.sym,mode,3000);const st=eventStats(X,C,r.sig.strat);per[r.sym]=st;const P=pooled[r.sig.strat]||(pooled[r.sig.strat]={n:0,h1:0,h2:0,sl:0,sumR:0});for(const k in st)P[k]+=st[k];prog.style.width=(84+15*Object.keys(per).length/sigs.length)+'%'});
-  for(const r of sigs){const st=per[r.sym];if(!st)continue;const P=pooled[r.sig.strat];r.prob=st.n>=15||P.n<=st.n?probOf(st,'pair'):probOf(P,'pool')}
-  await loadFilters(sigs.map(r=>r.sym));
-  const rank={signal:4,location:3,approach:2,wait:1,down:0};
-  S.results=res.sort((a,b)=>rank[b.state]-rank[a.state]||(b.sig?b.sig.score:0)-(a.sig?a.sig.score:0)||a.nearZ-b.nearZ);S.lastScan=Date.now();S.scanMode=mode;
-  const fresh=[];
-  for(const r of sigs){const key=r.sym+'|'+r.sig.strat+'|'+r.t+'|'+mode;if(!S.alerts.some(a=>a.key===key)){const a={key,at:Date.now(),sym:r.sym,mode,demo:!live,sig:r.sig,prob:r.prob||null};S.alerts.unshift(a);fresh.push(a)}}
-  S.alerts=S.alerts.filter(a=>a.sig&&a.sig.alloc).slice(0,200);LS.set('alerts',S.alerts);
-  if(live&&C.tgOn&&fresh.length)(async()=>{for(const a of fresh.slice(0,8)){try{await sendTg(planText(a.sym,a.mode,a.sig,false,a.prob));await sleep(1100)}catch(e){setStatus('Telegram: '+e.message);break}}})();
-  const top=S.results.find(r=>r.sig)||S.results.find(r=>r.state==='location');if(!S.dSym||!S.results.some(r=>r.sym===S.dSym&&r.sig))S.dSym=top?top.sym:'BTCUSDT';
-  setStatus();renderAll();refreshPrices()
+  await finalize(res,mode,C,prog);WS.sync()
  }catch(e){setStatus(t('scan_failed')+': '+(e.message||e))}
  finally{S.busy=false;$('scanBtn').disabled=false;setTimeout(()=>prog.style.width='0',600);if(S.again){S.again=false;setTimeout(scan,50)}}}
+
+/* results → probabilities, ranking, alerts, Telegram, render (shared by REST scan and WebSocket candle close) */
+async function finalize(res,mode,C,prog){
+ const b=res.find(r=>r.sym==='BTCUSDT');S.btc=b?{price:b.price,chg:b.chg,big:b.big.str}:null;
+ const sigs=res.filter(r=>r.sig),per={},pooled={};
+ for(const r of sigs){const old=S.results.find(x=>x.sym===r.sym&&x.sig&&x.t===r.t&&x.sig.strat===r.sig.strat);if(old&&old.prob)r.prob=old.prob}
+ const need=sigs.filter(r=>!r.prob);
+ await pool(need,3,async r=>{const X=await loadBundle(r.sym,mode,3000);const st=eventStats(X,C,r.sig.strat);per[r.sym]=st;const P=pooled[r.sig.strat]||(pooled[r.sig.strat]={n:0,h1:0,h2:0,sl:0,sumR:0});for(const k in st)P[k]+=st[k];if(prog)prog.style.width=(84+15*Object.keys(per).length/need.length)+'%'});
+ for(const r of need){const st=per[r.sym];if(!st)continue;const P=pooled[r.sig.strat];r.prob=st.n>=15||P.n<=st.n?probOf(st,'pair'):probOf(P,'pool')}
+ await loadFilters(sigs.map(r=>r.sym));
+ const rank={signal:4,location:3,approach:2,wait:1,down:0};
+ S.results=res.sort((a,b)=>rank[b.state]-rank[a.state]||(b.sig?b.sig.score:0)-(a.sig?a.sig.score:0)||a.nearZ-b.nearZ);S.lastScan=Date.now();S.scanMode=mode;
+ const fresh=[];
+ for(const r of sigs){const key=r.sym+'|'+r.sig.strat+'|'+r.t+'|'+mode;if(!S.alerts.some(a=>a.key===key)){const a={key,at:Date.now(),sym:r.sym,mode,demo:!live,sig:r.sig,prob:r.prob||null};S.alerts.unshift(a);fresh.push(a)}}
+ S.alerts=S.alerts.filter(a=>a.sig&&a.sig.alloc).slice(0,200);LS.set('alerts',S.alerts);
+ if(live&&C.tgOn&&fresh.length)tgQueue(fresh.slice(0,8).map(a=>planText(a.sym,a.mode,a.sig,false,a.prob)));
+ const top=S.results.find(r=>r.sig)||S.results.find(r=>r.state==='location');if(!S.dSym||!S.results.some(r=>r.sym===S.dSym&&r.sig))S.dSym=top?top.sym:'BTCUSDT';
+ setStatus();renderAll();if(!WS.open())refreshPrices()}
+/* Telegram sends one message at a time (about 1 per second) so bursts are not rejected */
+const tgQ=[];let tgBusy=false;
+function tgQueue(msgs){tgQ.push(...msgs);if(tgQ.length>30)tgQ.splice(0,tgQ.length-30);if(!tgBusy)(async()=>{tgBusy=true;while(tgQ.length){try{await sendTg(tgQ.shift())}catch(e){setStatus('Telegram: '+e.message);tgQ.length=0}await sleep(1100)}tgBusy=false})()}
+/* ---------- realtime: Binance WebSocket (market data, no API key) ----------
+   One connection carries the kline streams of every scanned pair on all three timeframes.
+   - every push (about every 1–2 s): live price, intrabar alerts (zone entered, SL/TP touched)
+   - candle close (k.x = true): the bar is appended, the pair is re-evaluated ~2 s later
+   Signals still come only from CLOSED candles, exactly like the REST scan. */
+const WS={sock:null,state:'off',streams:[],mode:null,retry:0,timer:null,closeT:null,closedBar:0,lastMsg:0,pend:new Set(),paintT:null,
+ url(){return /binance\.us/.test(cfg.endpoint)?'wss://stream.binance.us:9443/stream':S.wsAlt?'wss://stream.binance.com:9443/stream':'wss://data-stream.binance.vision/stream'},
+ open(){return this.state==='on'&&this.sock&&this.sock.readyState===1},
+ want(){return live&&cfg.auto==='ws'&&typeof WebSocket!=='undefined'},
+ sync(){if(!this.want()){this.stop();return}const M=MODES[S.scanMode],syms=S.results.map(r=>r.sym).slice(0,150);
+  const list=[];for(const s of syms)for(const tf of new Set([M.S,M.M,M.B]))list.push(s.toLowerCase()+'@kline_'+tf);
+  const same=this.mode===S.scanMode&&list.length===this.streams.length&&list.every((x,i)=>x===this.streams[i]);if(same&&this.sock)return;
+  this.streams=list;this.mode=S.scanMode;if(this.open()){this.resub();return}this.connect()},
+ connect(){this.stop(true);if(!this.streams.length)return;this.state='conn';paintWs();let s;
+  try{s=new WebSocket(this.url())}catch(e){this.fail();return}this.sock=s;
+  s.onopen=()=>{this.state='on';this.retry=0;this.lastMsg=Date.now();this.resub();paintWs()};
+  s.onmessage=e=>{this.lastMsg=Date.now();let m;try{m=JSON.parse(e.data)}catch(_){return}const k=m&&m.data&&m.data.k;if(k)onKline(m.data.s,k)};
+  s.onerror=()=>{};s.onclose=()=>{if(this.sock===s){this.sock=null;this.fail()}}},
+ resub(){const s=this.sock;if(!s||s.readyState!==1)return;if(this.subd&&this.subd.length)for(let i=0;i<this.subd.length;i+=200)s.send(JSON.stringify({method:'UNSUBSCRIBE',params:this.subd.slice(i,i+200),id:Date.now()%1e6+i}));
+  const L=this.streams;let k=0;const step=()=>{if(k>=L.length||s.readyState!==1)return;s.send(JSON.stringify({method:'SUBSCRIBE',params:L.slice(k,k+200),id:1+k}));k+=200;setTimeout(step,300)};step();this.subd=L.slice()},
+ fail(){if(!this.want()){this.state='off';paintWs();return}this.state='retry';this.retry++;if(this.retry===3)S.wsAlt=!S.wsAlt;paintWs();
+  clearTimeout(this.timer);this.timer=setTimeout(()=>{this.connect();if(S.lastScan&&!S.busy)scan()},Math.min(30000,1000*2**Math.min(this.retry,5)))},
+ stop(keep){clearTimeout(this.timer);if(this.sock){const s=this.sock;this.sock=null;s.onclose=null;try{s.close()}catch(e){}}this.subd=[];if(!keep){this.state='off';this.streams=[];this.mode=null;paintWs()}}};
+function paintWs(){const el=$('wsBadge');if(!el)return;const st=WS.state;el.className='wsb '+st;el.textContent=st==='on'?t('ws_on'):st==='conn'?t('ws_conn'):st==='retry'?t('ws_retry'):t('ws_off');el.title=st==='on'&&WS.lastMsg?t('ws_last')+' '+new Date(WS.lastMsg).toLocaleTimeString('en-GB',{timeZone:'Asia/Jakarta'}):''}
+/* one kline push from Binance */
+function onKline(sym,k){const mode=WS.mode,M=MODES[mode];if(!M)return;const X=S.cache[sym+mode];if(!X)return;
+ const role=k.i===M.S?'S':k.i===M.M?'M':k.i===M.B?'B':null;if(!role)return;
+ const c=+k.c;if(role==='S'){S.px[sym]=c;S.pxAt=Date.now();intraCheck(sym,c,+k.h,+k.l,+k.t);if(!WS.paintT)WS.paintT=setTimeout(()=>{WS.paintT=null;paintPrices()},1000)}
+ if(!k.x)return;
+ const bar={t:+k.t,o:+k.o,h:+k.h,l:+k.l,c,v:+k.q,ct:+k.T},arr=X[role].b,last=arr[arr.length-1],ms=TFMS[k.i];
+ if(last&&last.t===bar.t)arr[arr.length-1]=bar;else if(last&&bar.t===last.t+ms){arr.push(bar);arr.shift()}else if(!last||bar.t>last.t)X.gap=true;
+ X.dirty=true;
+ if(role==='S'){WS.pend.add(sym);if(bar.t>WS.closedBar)WS.closedBar=bar.t;clearTimeout(WS.closeT);WS.closeT=setTimeout(liveEval,2500)}}
+/* re-evaluate every scanned pair on the candle that just closed (gaps are refilled from REST) */
+async function liveEval(){if(S.busy){WS.closeT=setTimeout(liveEval,1500);return}S.busy=true;const C=runCfg(),mode=WS.mode,bar=WS.closedBar;WS.pend.clear();
+ try{const res=[];
+  await pool(S.results.map(r=>r.sym),4,async sym=>{let X=S.cache[sym+mode];if(!X)return;const lb=X.S.b[X.S.b.length-1];
+   if(X.gap||lb.t<bar){X=await loadBundle(sym,mode,500)}else if(X.dirty){X=build({S:X.S.b,M:X.M.b,B:X.B.b,tfS:X.tfS})}
+   S.cache[sym+mode]=X;const i=X.S.n-1,ev=evalAt(X,i,C),back=Math.round(864e5/TFMS[X.tfS]);
+   if(ev)res.push({sym,...ev,chg:X.S.c[i]/X.S.c[Math.max(0,i-back)]-1,near:closest(ev)})});
+  if(res.length)await finalize(res,mode,C,null);S.lastLive=Date.now()
+ }catch(e){setStatus(t('scan_failed')+': '+(e.message||e))}finally{S.busy=false;if(S.again){S.again=false;setTimeout(scan,50)}}
+ if(figs.has($('cFig'))&&location.hash==='#chart')loadChart()}
+/* intrabar warnings: information only, never an entry (the entry needs a closed candle) */
+S.intra=LS.get('intra',[]);S.lastTick={};
+function intraCheck(sym,px,hi,lo,bt){const r=S.results.find(x=>x.sym===sym);if(!r)return;const prev=S.lastTick[sym];S.lastTick[sym]=px;if(prev==null)return;
+ const fire=(type,key,extra)=>{key=sym+'|'+type+'|'+key;if(S.intra.some(a=>a.key===key))return;const a={key,at:Date.now(),sym,mode:WS.mode,type,px,...extra};S.intra.unshift(a);S.intra=S.intra.slice(0,150);LS.set('intra',S.intra);renderIntra();
+  if(cfg.tgOn&&cfg.tgIntra)tgQueue([intraText(a)])};
+ if(r.sig){if(!(bt>r.t))return;const s=r.sig,id=r.t+s.strat;if(lo<=s.stop)fire('sl',id,{lvl:s.stop});else if(hi>=s.tp2)fire('tp2',id,{lvl:s.tp2});else if(hi>=s.tp1)fire('tp1',id,{lvl:s.tp1});return}
+ if(r.big.str==='down')return;const X=S.cache[sym+WS.mode];if(!X)return;
+ for(const z of zAt(X.M,X.M.n-1,1))if(prev>z.top&&px<=z.top&&px>=z.bot){fire('zone',z.kind+z.i0+'@'+X.M.b[z.i0].t,{lvl:z.top,bot:z.bot,kind:z.kind});break}}
+function intraText(a){const head={sl:'🔴',tp1:'🟢',tp2:'🟢',zone:'🟡'}[a.type];return`${head} <b>${a.sym}</b> · ${MODE_LB[a.mode]||''}\n${t('in_'+a.type,fmtP(a.px),fmtP(a.lvl),a.kind?t('zone_'+a.kind):'',fmtP(a.bot))}\n<i>${t('intra_tag')}</i>`}
+function renderIntra(){const el=$('iList');if(!el)return;el.innerHTML=S.intra.length?S.intra.slice(0,40).map(a=>`<div class="alert"><span class="pill ${a.type==='sl'?'STOP':a.type==='zone'?'PAUSE':'GO'}">${t('it_'+a.type)}</span> <b>${a.sym}</b> · ${esc(t('in_'+a.type,fmtP(a.px),fmtP(a.lvl),a.kind?t('zone_'+a.kind):'',fmtP(a.bot)))}<small>${tstr(a.at)}</small></div>`).join(''):`<div class="empty">${t('intra_none')}</div>`}
+/* watchdog: a silent socket for 60 s is reconnected */
+setInterval(()=>{if(WS.open()&&Date.now()-WS.lastMsg>60000){WS.sock.close()}paintWs()},15000);
 
 /* ---------- chart ---------- */
 const figs=new Map();
@@ -955,7 +1034,7 @@ function marksFor(X,from){const m=[],C=runCfg();for(let i=Math.max(from,WARM);i<
 function chartData(X,role,sym,sig,marks){const I=X[role],ZT=role==='B'?X.B:X.M,j=role==='B'?X.B.n-1:X.M.n-1;return{I,Z:zAt(ZT,j),ZT,sym,sig:role==='S'?sig:null,marks:role==='S'?marks:null,tf:MODES[X.mode||S.scanMode][role]}}
 
 /* ---------- render ---------- */
-function renderAll(){renderDash();renderScanner();renderAlerts();renderGuard()}
+function renderAll(){renderDash();renderScanner();renderAlerts();renderIntra();renderGuard()}
 function kpi(lb,val,sub,col){return`<div class="kpi"><small>${lb}</small><b${col?` style="color:${col}"`:''}>${val}</b><small>${sub||'&nbsp;'}</small></div>`}
 const whyTxt=w=>w.map(x=>t('w_'+x)).join(' · ');
 const stCell=r=>`<span class="st-${r.state}">${t('state_'+r.state)}</span>`;
@@ -1094,13 +1173,13 @@ $('jTable').onclick=e=>{const b=e.target.closest('[data-jdel]');if(!b)return;S.j
 $('aTest').onclick=async()=>{try{await sendTg('✅ '+t('tg_hello'));$('tgMsg').textContent=t('tg_ok')}catch(e){$('tgMsg').textContent=t('failed')+': '+e.message}};
 $('aTestSig').onclick=async()=>{const x=testSignal();if(!x){$('tgMsg').textContent=t('connecting');return}try{await sendTg(planText(x.sym,S.scanMode,x.sig,true,x.prob));$('tgMsg').textContent=t('sent')+': '+x.sym}catch(e){$('tgMsg').textContent=t('failed')+': '+e.message}};
 $('aCopy').onclick=async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText(S.alerts.map(a=>plainText(planText(a.sym,a.mode,a.sig,a.demo,a.prob))).join('\n\n— — —\n\n'));flash(b,t('copied'))}catch(err){flash(b,t('failed'))}};
-$('aClear').onclick=()=>{S.alerts=[];LS.set('alerts',[]);renderAlerts()};
-$('aAuto').onchange=e=>{cfg.auto=e.target.value;LS.set('cfg',cfg)};
+$('aClear').onclick=()=>{S.alerts=[];LS.set('alerts',[]);S.intra=[];LS.set('intra',[]);renderAlerts()};
+$('aAuto').onchange=e=>{cfg.auto=e.target.value;LS.set('cfg',cfg);WS.sync()};
 $('cfgForm').onsubmit=e=>{e.preventDefault();for(const k in DEF){const el=$('k_'+k);if(!el)continue;cfg[k]=el.type==='checkbox'?el.checked:typeof DEF[k]==='number'?(el.value===''||isNaN(+el.value)?DEF[k]:+el.value):el.value.trim()}LS.set('cfg',cfg);S.cache={};figs.delete($('cFig'));$('cfgMsg').textContent=t('saved');fillCfg();calc();renderGuard();probeLive().then(scan)};
 $('cfgReset').onclick=()=>{const keep={tgToken:cfg.tgToken,tgChat:cfg.tgChat,tgOn:cfg.tgOn};cfg={...DEF,...keep};LS.set('cfg',cfg);fillCfg();$('cfgMsg').textContent=t('restored')};
 setInterval(refreshPrices,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshPrices()});
 setInterval(()=>{const c=$('clk');if(c)c.textContent=hm(Date.now());if(S.busy||!S.lastScan)return;const now=Date.now();
- if(cfg.auto==='bar'){const ms=TFMS[MODES[S.scanMode].S],bar=Math.floor((now-8000)/ms);if(bar>Math.floor((S.lastScan-8000)/ms))scan()}
+ if(cfg.auto==='bar'||(cfg.auto==='ws'&&!WS.open())){const ms=TFMS[MODES[S.scanMode].S],bar=Math.floor((now-8000)/ms);if(bar>Math.floor((S.lastScan-8000)/ms))scan()}
  else if(+cfg.auto>0&&now-S.lastScan>=+cfg.auto*6e4)scan()},5000);
 
 fillCfg();applyLang();applyTheme();paintLayers();route();
